@@ -1,29 +1,19 @@
-from typing import TypedDict
-from langgraph.graph import StateGraph, START, END
+import os
+from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
 
+# 1. Carregar variáveis do ficheiro .env
+load_dotenv()
 
-class Estado(TypedDict):
-    nome: str
-    mensagem: str
+# 2. Inicializar o modelo ChatGoogleGenerativeAI com o Gemini atualizado
+llm = ChatGoogleGenerativeAI(model="gemini-3.8-flash")
 
+# 3. Definir a mensagem a enviar
+mensagem = "Explica o conceito de Agentes de IA de forma simples e em português."
 
-def saudar(state: Estado):
-    return {"mensagem": f"Olá, {state['nome']}!"}
+# 4. Invocar o modelo e obter a resposta
+resultado = llm.invoke(mensagem)
 
-
-def animar(state: Estado):
-    return {"mensagem": state["mensagem"] + " Bem-vinda ao AgentFlow!"}
-
-
-builder = StateGraph(Estado)
-builder.add_node("saudar", saudar)
-builder.add_node("animar", animar)
-
-builder.add_edge(START, "saudar")
-builder.add_edge("saudar", "animar")
-builder.add_edge("animar", END)
-
-graph = builder.compile()
-
-resultado = graph.invoke({"nome": "Kallymeire"})
-print(resultado["mensagem"])
+# 5. Imprimir a resposta
+print("--- RESPOSTA DO GEMINI ---")
+print(resultado.content)
