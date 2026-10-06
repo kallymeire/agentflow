@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa e tomam decisões.
+O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa e trabalham em equipe com um supervisor.
 
 ## O que já funciona
 
@@ -12,6 +12,7 @@ O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até
 | `agente_ferramentas.py` | Agente que decide sozinho entre responder direto ou usar ferramentas (soma e data/hora) |
 | `agente_planilha.py` | Agente que lê planilhas CSV e responde perguntas sobre os dados |
 | `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
+| `agente_multiagente.py` | Supervisor que delega a pergunta para agentes especialistas |
 
 ## Como o agente funciona
 
@@ -21,19 +22,27 @@ START -> agente -> (precisa de ferramenta?) -> ferramentas -> agente -> resposta
 
 O modelo analisa a pergunta e **decide** se responde direto ou chama uma ferramenta. Depois de executar, ele volta ao agente, que usa o resultado para escrever a resposta final.
 
-## Exemplo de execução
+## Arquitetura multiagente
+
+```
+                 +--> planilha (ler_planilha, somar_coluna)
+START -> supervisor --> calculo (somar, data_e_hora_atual)
+                 +--> geral (sem ferramentas)
+```
+
+O **supervisor** lê a pergunta e escolhe qual agente especialista vai respondê-la. Cada especialista tem as suas próprias ferramentas e instruções.
+
+## Exemplos de execução
+
+### Agente com ferramentas
 
 ```
 Pergunta: Qual o total da coluna quantidade em vendas.csv?
   -> Ferramenta usada: somar_coluna {'nome_arquivo': 'vendas.csv', 'coluna': 'quantidade'}
 Resposta: O total da coluna "quantidade" no arquivo vendas.csv é 52.
-
-Pergunta: Qual é o produto mais caro de vendas.csv?
-  -> Ferramenta usada: ler_planilha {'nome_arquivo': 'vendas.csv'}
-Resposta: O produto mais caro na planilha vendas.csv é o Monitor, com um preço de 899.00.
 ```
 
-### Exemplo com memória
+### Agente com memória
 
 ```
 Pergunta: Qual é o produto mais caro de vendas.csv?
@@ -44,6 +53,20 @@ Resposta: O produto mais barato é o Mouse, com um preço de 45,50.
 ```
 
 Na segunda pergunta o agente não recebeu o nome da planilha: ele entendeu pelo contexto da conversa.
+
+### Sistema multiagente
+
+```
+Pergunta: Qual o total da coluna quantidade em vendas.csv?
+  [supervisor] escolheu o agente: planilha
+  -> Ferramenta usada: somar_coluna {...}
+Resposta: O total da coluna "quantidade" no arquivo vendas.csv é 52.
+
+Pergunta: Que dia e hora são agora?
+  [supervisor] escolheu o agente: calculo
+  -> Ferramenta usada: data_e_hora_atual {}
+Resposta: Agora são 21:15 do dia 05/10/2026.
+```
 
 ## Tecnologias
 
@@ -74,7 +97,7 @@ pip install -r requirements.txt
 
 5. Rode um dos agentes:
 ```bash
-python src\agentflow\agente_memoria.py
+python src\agentflow\agente_multiagente.py
 ```
 
 > O plano gratuito do Gemini tem limite de chamadas por minuto e por dia. Se aparecer o erro 429, aguarde ou troque a variável `MODELO` no código.
@@ -94,11 +117,11 @@ agentflow/
 ## Próximos passos
 
 - [x] Memória de conversa
-- [ ] Sistema multiagente com supervisor
+- [x] Sistema multiagente com supervisor
+- [ ] Interface web
 - [ ] RAG sobre documentos
 - [ ] Controle de custo e uso de tokens
 - [ ] Avaliação e observabilidade
-- [ ] Interface web
 
 ## Autora
 
