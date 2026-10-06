@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados e tomam decisões.
+O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa e tomam decisões.
 
 ## O que já funciona
 
@@ -11,6 +11,7 @@ O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até
 | `grafo_basico.py` | Primeiro grafo do LangGraph, conectado ao Gemini |
 | `agente_ferramentas.py` | Agente que decide sozinho entre responder direto ou usar ferramentas (soma e data/hora) |
 | `agente_planilha.py` | Agente que lê planilhas CSV e responde perguntas sobre os dados |
+| `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
 
 ## Como o agente funciona
 
@@ -31,6 +32,18 @@ Pergunta: Qual é o produto mais caro de vendas.csv?
   -> Ferramenta usada: ler_planilha {'nome_arquivo': 'vendas.csv'}
 Resposta: O produto mais caro na planilha vendas.csv é o Monitor, com um preço de 899.00.
 ```
+
+### Exemplo com memória
+
+```
+Pergunta: Qual é o produto mais caro de vendas.csv?
+Resposta: O produto mais caro é o Monitor, com um preço de 899,00.
+
+Pergunta: E qual é o mais barato?
+Resposta: O produto mais barato é o Mouse, com um preço de 45,50.
+```
+
+Na segunda pergunta o agente não recebeu o nome da planilha: ele entendeu pelo contexto da conversa.
 
 ## Tecnologias
 
@@ -57,11 +70,11 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-4. Crie uma chave em [aistudio.google.com](https://aistudio.google.com), copie o arquivo `.env.example` para `.env` e cole a chave nele.
+4. Crie uma chave em [aistudio.google.com](https://aistudio.google.com), copie o arquivo `.env.example` para `.env` e cole a chave nele. O arquivo `.env` nunca deve ser enviado ao GitHub.
 
 5. Rode um dos agentes:
 ```bash
-python src\agentflow\agente_planilha.py
+python src\agentflow\agente_memoria.py
 ```
 
 > O plano gratuito do Gemini tem limite de chamadas por minuto e por dia. Se aparecer o erro 429, aguarde ou troque a variável `MODELO` no código.
@@ -80,7 +93,7 @@ agentflow/
 
 ## Próximos passos
 
-- [ ] Memória de conversa
+- [x] Memória de conversa
 - [ ] Sistema multiagente com supervisor
 - [ ] RAG sobre documentos
 - [ ] Controle de custo e uso de tokens
