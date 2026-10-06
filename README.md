@@ -2,7 +2,9 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa e trabalham em equipe com um supervisor.
+O projeto evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa, trabalham em equipe com um supervisor e têm uma interface web.
+
+![Interface do AgentFlow](docs/demo.png)
 
 ## O que já funciona
 
@@ -13,6 +15,7 @@ O projeto está em desenvolvimento e evolui por etapas: de um grafo simples até
 | `agente_planilha.py` | Agente que lê planilhas CSV e responde perguntas sobre os dados |
 | `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
 | `agente_multiagente.py` | Supervisor que delega a pergunta para agentes especialistas |
+| `app_web.py` | Interface web de chat (Streamlit) sobre o sistema multiagente |
 
 ## Como o agente funciona
 
@@ -30,7 +33,7 @@ START -> supervisor --> calculo (somar, data_e_hora_atual)
                  +--> geral (sem ferramentas)
 ```
 
-O **supervisor** lê a pergunta e escolhe qual agente especialista vai respondê-la. Cada especialista tem as suas próprias ferramentas e instruções.
+O **supervisor** lê a pergunta e escolhe qual agente especialista vai respondê-la. Cada especialista tem as suas próprias ferramentas e instruções. A interface web mostra, abaixo de cada resposta, qual agente respondeu.
 
 ## Exemplos de execução
 
@@ -73,6 +76,7 @@ Resposta: Agora são 21:15 do dia 05/10/2026.
 - Python 3.10
 - LangGraph e LangChain
 - Gemini (Google AI Studio)
+- Streamlit
 
 ## Como rodar
 
@@ -95,7 +99,12 @@ pip install -r requirements.txt
 
 4. Crie uma chave em [aistudio.google.com](https://aistudio.google.com), copie o arquivo `.env.example` para `.env` e cole a chave nele. O arquivo `.env` nunca deve ser enviado ao GitHub.
 
-5. Rode um dos agentes:
+5. Rode a interface web:
+```bash
+streamlit run src\agentflow\app_web.py
+```
+
+Ou rode um agente direto no terminal:
 ```bash
 python src\agentflow\agente_multiagente.py
 ```
@@ -106,10 +115,10 @@ python src\agentflow\agente_multiagente.py
 
 ```
 agentflow/
-├── src/agentflow/   # grafos e agentes
+├── src/agentflow/   # grafos, agentes e interface web
 ├── dados/           # planilhas de exemplo
+├── docs/            # imagens da documentação
 ├── tests/
-├── docs/
 ├── requirements.txt
 └── .env.example
 ```
@@ -118,7 +127,7 @@ agentflow/
 
 - [x] Memória de conversa
 - [x] Sistema multiagente com supervisor
-- [ ] Interface web
+- [x] Interface web
 - [ ] RAG sobre documentos
 - [ ] Controle de custo e uso de tokens
 - [ ] Avaliação e observabilidade
