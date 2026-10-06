@@ -1,4 +1,6 @@
+import time
 from datetime import datetime
+
 from dotenv import load_dotenv
 from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -6,6 +8,9 @@ from langgraph.graph import StateGraph, MessagesState, START
 from langgraph.prebuilt import ToolNode, tools_condition
 
 load_dotenv()
+
+# Para trocar de modelo, mude só esta linha
+MODELO = "gemini-3.1-flash-lite"
 
 
 # 1. Ferramentas que o agente pode usar
@@ -24,7 +29,7 @@ def data_e_hora_atual() -> str:
 ferramentas = [somar, data_e_hora_atual]
 
 # 2. Modelo que sabe que as ferramentas existem
-llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash").bind_tools(ferramentas)
+llm = ChatGoogleGenerativeAI(model=MODELO).bind_tools(ferramentas)
 
 
 # 3. Nó do agente: o modelo decide se responde ou usa uma ferramenta
@@ -50,7 +55,11 @@ if __name__ == "__main__":
         "Explique em uma frase o que é um agente de IA.",
     ]
 
-    for pergunta in perguntas:
+    for i, pergunta in enumerate(perguntas):
+        if i > 0:
+            print("\n(aguardando 30s para respeitar o limite do plano gratuito...)")
+            time.sleep(30)
+
         print(f"\nPergunta: {pergunta}")
         resultado = grafo.invoke({"messages": [("user", pergunta)]})
 
