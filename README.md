@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa e tem interface web.
+O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens e tem interface web.
 
 ![Interface do AgentFlow](docs/demo.png)
 
@@ -15,8 +15,8 @@ O projeto evolui por etapas: de um grafo simples até um sistema multiagente que
 | `agente_planilha.py` | Agente que lê planilhas CSV e responde perguntas sobre os dados |
 | `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
 | `agente_rag.py` | Agente RAG: busca em documentos e responde citando a fonte |
-| `agente_multiagente.py` | Supervisor que delega a pergunta para 4 agentes especialistas |
-| `app_web.py` | Interface web de chat (Streamlit) sobre o sistema multiagente |
+| `agente_multiagente.py` | Supervisor que delega a pergunta para 4 agentes especialistas e contabiliza tokens |
+| `app_web.py` | Interface web de chat (Streamlit) com painel de uso de tokens |
 
 ## Como o agente funciona
 
@@ -49,6 +49,25 @@ pergunta -> busca por similaridade -> trechos relevantes -> agente responde com 
 - Os embeddings são gerados com `gemini-embedding-001`.
 - O agente é instruído a responder **somente** com base nos trechos encontrados, a citar o arquivo de origem e a admitir quando não encontra a informação.
 
+## Controle de tokens
+
+- **Medição:** cada pergunta soma os tokens de entrada e de saída de todas as chamadas ao modelo (supervisor e agente especialista). A interface mostra o valor da última pergunta e o total da sessão.
+- **Janela deslizante:** o modelo recebe apenas as últimas 5 mensagens da conversa, em vez do histórico inteiro, para que o custo não cresça a cada pergunta.
+
+Exemplo de medição:
+
+```
+Pergunta: Qual o prazo de garantia do monitor?
+  [supervisor] escolheu o agente: loja
+Tokens: 695 de entrada + 60 de saída
+
+Pergunta: Qual o total da coluna quantidade em vendas.csv?
+  [supervisor] escolheu o agente: planilha
+Tokens: 464 de entrada + 63 de saída
+```
+
+A pergunta que usa RAG gasta mais tokens de entrada, porque os trechos recuperados dos documentos entram no prompt.
+
 ## Exemplos de execução
 
 ### Agente com ferramentas
@@ -80,20 +99,6 @@ Resposta: Não encontrei informações sobre a venda de geladeiras nos documento
 ```
 
 O agente admite que não encontrou a informação, em vez de inventar uma resposta.
-
-### Sistema multiagente (planilhas, cálculos e documentos na mesma conversa)
-
-```
-Pergunta: Qual o prazo de garantia do monitor?
-  [supervisor] escolheu o agente: loja
-  -> Ferramenta usada: buscar_documentos {'pergunta': 'Qual o prazo de garantia do monitor?'}
-Resposta: O prazo de garantia dos monitores é de 24 meses. Fonte: politicas_loja.txt
-
-Pergunta: Qual o total da coluna quantidade em vendas.csv?
-  [supervisor] escolheu o agente: planilha
-  -> Ferramenta usada: somar_coluna {'nome_arquivo': 'vendas.csv', 'coluna': 'quantidade'}
-Resposta: O total da coluna "quantidade" no arquivo vendas.csv é 52.
-```
 
 ## Tecnologias
 
@@ -155,8 +160,10 @@ agentflow/
 - [x] Interface web
 - [x] RAG sobre documentos
 - [x] RAG integrado ao supervisor e à interface web
-- [ ] Controle de custo e uso de tokens
-- [ ] Avaliação e observabilidade
+- [x] Controle de uso de tokens e janela de contexto
+- [ ] Cache de respostas repetidas
+- [ ] Avaliação automática com perguntas de teste
+- [ ] Observabilidade (rastreamento das chamadas)
 
 ## Autora
 

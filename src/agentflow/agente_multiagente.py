@@ -21,6 +21,8 @@ MODELO = "gemini-3.1-flash-lite"
 # ---------- Estado e decisão do supervisor ----------
 class Estado(MessagesState):
     proximo: str
+    tokens_entrada: int
+    tokens_saida: int
 
 
 class Decisao(BaseModel):
@@ -35,6 +37,18 @@ INSTRUCAO_SUPERVISOR = (
     "pagamento, atendimento)\n"
     "- geral: qualquer outra pergunta"
 )
+
+
+# ---------- Contagem de tokens ----------
+def somar_uso(mensagens):
+    """Soma os tokens de entrada e saída das mensagens que trazem esse registro."""
+    entrada = saida = 0
+    for msg in mensagens:
+        uso = getattr(msg, "usage_metadata", None)
+        if uso:
+            entrada += uso.get("input_tokens", 0)
+            saida += uso.get("output_tokens", 0)
+    return entrada, saida
 
 
 # ---------- Fábrica de agentes especialistas ----------
@@ -83,16 +97,20 @@ agente_geral = criar_agente(
 
 
 # ---------- Nós do grafo principal ----------
-llm_supervisor = ChatGoogleGenerativeAI(model=MODELO).with_structured_output(Decisao)
+llm_supervisor = ChatGoogleGenerativeAI(model=MODELO).with_structured_output(
+    Decisao, include_raw=True
+)
 
 
 def supervisor(state: Estado):
-    decisao = llm_supervisor.invoke(
+    retorno = llm_supervisor.invoke(
         [SystemMessage(content=INSTRUCAO_SUPERVISOR), *state["messages"]]
     )
+    decisao = retorno.get("parsed")
     escolha = decisao.agente if decisao else "geral"
+    entrada, saida = somar_uso([retorno.get("raw")])
     print(f"  [supervisor] escolheu o agente: {escolha}")
-    return {"proximo": escolha}
+    return {"proximo": escolha, "tokens_entrada": entrada, "tokens_saida": saida}
 
 
 def chamar(subgrafo):
@@ -102,7 +120,12 @@ def chamar(subgrafo):
         for msg in novas:
             for chamada in getattr(msg, "tool_calls", None) or []:
                 print(f"  -> Ferramenta usada: {chamada['name']} {chamada['args']}")
-        return {"messages": [resultado["messages"][-1]]}
+        entrada, saida = somar_uso(novas)
+        return {
+            "messages": [resultado["messages"][-1]],
+            "tokens_entrada": state.get("tokens_entrada", 0) + entrada,
+            "tokens_saida": state.get("tokens_saida", 0) + saida,
+        }
 
     return no
 
@@ -147,3 +170,7 @@ if __name__ == "__main__":
         print(f"\nPergunta: {pergunta}")
         resultado = grafo.invoke({"messages": [("user", pergunta)]})
         print(f"Resposta: {resultado['messages'][-1].text}")
+        print(
+            f"Tokens: {resultado.get('tokens_entrada', 0)} de entrada + "
+            f"{resultado.get('tokens_saida', 0)} de saída"
+        )
