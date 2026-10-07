@@ -11,6 +11,7 @@ from pydantic import BaseModel
 # Reaproveita as ferramentas que você já criou
 from agente_planilha import ler_planilha, somar_coluna
 from agente_ferramentas import somar, data_e_hora_atual
+from agente_rag import buscar_documentos
 
 load_dotenv()
 
@@ -23,13 +24,15 @@ class Estado(MessagesState):
 
 
 class Decisao(BaseModel):
-    agente: Literal["planilha", "calculo", "geral"]
+    agente: Literal["planilha", "calculo", "loja", "geral"]
 
 
 INSTRUCAO_SUPERVISOR = (
     "Você é um supervisor. Leia a pergunta do usuário e escolha o agente certo:\n"
     "- planilha: perguntas sobre arquivos CSV ou planilhas (vendas.csv)\n"
     "- calculo: somas de números, data ou hora atual\n"
+    "- loja: políticas da loja Techponto (troca, devolução, garantia, frete, "
+    "pagamento, atendimento)\n"
     "- geral: qualquer outra pergunta"
 )
 
@@ -66,6 +69,13 @@ agente_calculo = criar_agente(
     [somar, data_e_hora_atual],
     "Você é o especialista em cálculos e data/hora. Use as ferramentas.",
 )
+agente_loja = criar_agente(
+    [buscar_documentos],
+    "Você é o assistente da loja Techponto. Use SEMPRE a ferramenta "
+    "buscar_documentos, responda apenas com base nos trechos encontrados e cite a "
+    "fonte (nome do arquivo). Se a informação não estiver nos documentos, diga que "
+    "não encontrou, sem inventar.",
+)
 agente_geral = criar_agente(
     [],
     "Você é um assistente geral. Responda de forma curta e em português.",
@@ -101,16 +111,23 @@ workflow = StateGraph(Estado)
 workflow.add_node("supervisor", supervisor)
 workflow.add_node("planilha", chamar(agente_planilha))
 workflow.add_node("calculo", chamar(agente_calculo))
+workflow.add_node("loja", chamar(agente_loja))
 workflow.add_node("geral", chamar(agente_geral))
 
 workflow.add_edge(START, "supervisor")
 workflow.add_conditional_edges(
     "supervisor",
     lambda state: state["proximo"],
-    {"planilha": "planilha", "calculo": "calculo", "geral": "geral"},
+    {
+        "planilha": "planilha",
+        "calculo": "calculo",
+        "loja": "loja",
+        "geral": "geral",
+    },
 )
 workflow.add_edge("planilha", END)
 workflow.add_edge("calculo", END)
+workflow.add_edge("loja", END)
 workflow.add_edge("geral", END)
 
 grafo = workflow.compile()
@@ -118,8 +135,8 @@ grafo = workflow.compile()
 
 if __name__ == "__main__":
     perguntas = [
+        "Qual o prazo de garantia do monitor?",
         "Qual o total da coluna quantidade em vendas.csv?",
-        "Que dia e hora são agora?",
     ]
 
     for i, pergunta in enumerate(perguntas):
