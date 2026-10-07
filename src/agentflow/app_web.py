@@ -15,10 +15,12 @@ if "historico" not in st.session_state:
     st.session_state.total_saida = 0
     st.session_state.ultima = 0
 
-# Mostra a conversa até agora
-for papel, texto in st.session_state.historico:
-    with st.chat_message(papel):
-        st.markdown(texto)
+# Mostra a conversa até agora (com a legenda de cada resposta)
+for msg in st.session_state.historico:
+    with st.chat_message(msg["papel"]):
+        st.markdown(msg["texto"])
+        if msg["legenda"]:
+            st.caption(msg["legenda"])
 
 pergunta = st.chat_input("Pergunte algo (ex.: qual o produto mais caro de vendas.csv?)")
 
@@ -27,10 +29,11 @@ if pergunta:
         st.markdown(pergunta)
 
     # Só as últimas mensagens vão para o modelo (economiza tokens)
-    mensagens = (st.session_state.historico + [("user", pergunta)])[-JANELA:]
+    anteriores = [(m["papel"], m["texto"]) for m in st.session_state.historico]
+    mensagens = (anteriores + [("user", pergunta)])[-JANELA:]
 
     entrada = saida = 0
-    agente = ""
+    legenda = ""
 
     with st.chat_message("assistant"):
         with st.spinner("Pensando..."):
@@ -40,6 +43,10 @@ if pergunta:
                 agente = resultado.get("proximo", "")
                 entrada = resultado.get("tokens_entrada", 0)
                 saida = resultado.get("tokens_saida", 0)
+                legenda = (
+                    f"Agente que respondeu: {agente} · "
+                    f"tokens: {entrada} entrada + {saida} saída"
+                )
             except Exception:
                 resposta = (
                     "Não consegui falar com o modelo agora. "
@@ -47,17 +54,16 @@ if pergunta:
                 )
 
         st.markdown(resposta)
-        if agente:
-            st.caption(
-                f"Agente que respondeu: {agente} · "
-                f"tokens: {entrada} entrada + {saida} saída"
-            )
+        if legenda:
+            st.caption(legenda)
 
     st.session_state.total_entrada += entrada
     st.session_state.total_saida += saida
     st.session_state.ultima = entrada + saida
-    st.session_state.historico.append(("user", pergunta))
-    st.session_state.historico.append(("assistant", resposta))
+    st.session_state.historico.append({"papel": "user", "texto": pergunta, "legenda": ""})
+    st.session_state.historico.append(
+        {"papel": "assistant", "texto": resposta, "legenda": legenda}
+    )
 
 # Painel lateral com o uso de tokens
 with st.sidebar:
