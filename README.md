@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa, trabalham em equipe com um supervisor e têm uma interface web.
+O projeto evolui por etapas: de um grafo simples até agentes que usam ferramentas, leem dados, lembram da conversa, trabalham em equipe com um supervisor, têm interface web e consultam documentos com RAG.
 
 ![Interface do AgentFlow](docs/demo.png)
 
@@ -16,6 +16,7 @@ O projeto evolui por etapas: de um grafo simples até agentes que usam ferrament
 | `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
 | `agente_multiagente.py` | Supervisor que delega a pergunta para agentes especialistas |
 | `app_web.py` | Interface web de chat (Streamlit) sobre o sistema multiagente |
+| `agente_rag.py` | Agente RAG: busca em documentos e responde citando a fonte |
 
 ## Como o agente funciona
 
@@ -35,103 +36,20 @@ START -> supervisor --> calculo (somar, data_e_hora_atual)
 
 O **supervisor** lê a pergunta e escolhe qual agente especialista vai respondê-la. Cada especialista tem as suas próprias ferramentas e instruções. A interface web mostra, abaixo de cada resposta, qual agente respondeu.
 
+## RAG sobre documentos
+
+```
+documentos (.txt) -> pedaços (chunks) -> embeddings -> índice vetorial
+pergunta -> busca por similaridade -> trechos relevantes -> agente responde com a fonte
+```
+
+- Os documentos ficam na pasta `base_conhecimento/`.
+- Os embeddings são gerados com `gemini-embedding-001`.
+- O agente é instruído a responder **somente** com base nos trechos encontrados, a citar o arquivo de origem e a admitir quando não encontra a informação.
+
 ## Exemplos de execução
 
 ### Agente com ferramentas
 
 ```
-Pergunta: Qual o total da coluna quantidade em vendas.csv?
-  -> Ferramenta usada: somar_coluna {'nome_arquivo': 'vendas.csv', 'coluna': 'quantidade'}
-Resposta: O total da coluna "quantidade" no arquivo vendas.csv é 52.
-```
-
-### Agente com memória
-
-```
-Pergunta: Qual é o produto mais caro de vendas.csv?
-Resposta: O produto mais caro é o Monitor, com um preço de 899,00.
-
-Pergunta: E qual é o mais barato?
-Resposta: O produto mais barato é o Mouse, com um preço de 45,50.
-```
-
-Na segunda pergunta o agente não recebeu o nome da planilha: ele entendeu pelo contexto da conversa.
-
-### Sistema multiagente
-
-```
-Pergunta: Qual o total da coluna quantidade em vendas.csv?
-  [supervisor] escolheu o agente: planilha
-  -> Ferramenta usada: somar_coluna {...}
-Resposta: O total da coluna "quantidade" no arquivo vendas.csv é 52.
-
-Pergunta: Que dia e hora são agora?
-  [supervisor] escolheu o agente: calculo
-  -> Ferramenta usada: data_e_hora_atual {}
-Resposta: Agora são 21:15 do dia 05/10/2026.
-```
-
-## Tecnologias
-
-- Python 3.10
-- LangGraph e LangChain
-- Gemini (Google AI Studio)
-- Streamlit
-
-## Como rodar
-
-1. Clone o repositório:
-```bash
-git clone https://github.com/kallymeire/agentflow.git
-cd agentflow
-```
-
-2. Crie e ative o ambiente virtual (Windows):
-```bash
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-3. Instale as dependências:
-```bash
-pip install -r requirements.txt
-```
-
-4. Crie uma chave em [aistudio.google.com](https://aistudio.google.com), copie o arquivo `.env.example` para `.env` e cole a chave nele. O arquivo `.env` nunca deve ser enviado ao GitHub.
-
-5. Rode a interface web:
-```bash
-streamlit run src\agentflow\app_web.py
-```
-
-Ou rode um agente direto no terminal:
-```bash
-python src\agentflow\agente_multiagente.py
-```
-
-> O plano gratuito do Gemini tem limite de chamadas por minuto e por dia. Se aparecer o erro 429, aguarde ou troque a variável `MODELO` no código.
-
-## Estrutura
-
-```
-agentflow/
-├── src/agentflow/   # grafos, agentes e interface web
-├── dados/           # planilhas de exemplo
-├── docs/            # imagens da documentação
-├── tests/
-├── requirements.txt
-└── .env.example
-```
-
-## Próximos passos
-
-- [x] Memória de conversa
-- [x] Sistema multiagente com supervisor
-- [x] Interface web
-- [ ] RAG sobre documentos
-- [ ] Controle de custo e uso de tokens
-- [ ] Avaliação e observabilidade
-
-## Autora
-
-Kallymeire Coelho, [GitHub](https://github.com/kallymeire) · [LinkedIn](https://www.linkedin.com/in/kallymeire-coelho-212746263)
+Pergunta: Qual o total da coluna quantidade em
