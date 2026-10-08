@@ -31,12 +31,15 @@ class Decisao(BaseModel):
 
 INSTRUCAO_SUPERVISOR = (
     "Você é um supervisor. Leia a pergunta do usuário e escolha o agente certo:\n"
-    "- planilha: perguntas sobre arquivos CSV ou planilhas (vendas.csv)\n"
+    "- planilha: perguntas sobre os dados do arquivo vendas.csv (totais, preços, "
+    "quantidades, produto mais caro ou mais barato)\n"
     "- calculo: somas de números, data ou hora atual\n"
-    "- loja: políticas da loja Techponto (troca, devolução, garantia, frete, "
-    "pagamento, atendimento)\n"
-    "- geral: qualquer outra pergunta"
+    "- loja: qualquer pergunta sobre a loja Techponto: políticas (troca, devolução, "
+    "garantia, frete, pagamento, atendimento) e também se a loja vende ou trabalha "
+    "com determinado produto\n"
+    "- geral: perguntas gerais que não têm relação com a loja, planilhas ou cálculos"
 )
+
 
 
 # ---------- Contagem de tokens ----------

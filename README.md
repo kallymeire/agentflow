@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens e tem interface web.
+O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, é validado por testes automáticos e tem interface web.
 
 ![Interface do AgentFlow](docs/demo.png)
 
@@ -17,6 +17,7 @@ O projeto evolui por etapas: de um grafo simples até um sistema multiagente que
 | `agente_rag.py` | Agente RAG: busca em documentos e responde citando a fonte |
 | `agente_multiagente.py` | Supervisor que delega a pergunta para 4 agentes especialistas e contabiliza tokens |
 | `app_web.py` | Interface web de chat (Streamlit) com painel de uso de tokens |
+| `avaliar.py` | Avaliação automática: roda perguntas de teste e gera um relatório |
 
 ## Como o agente funciona
 
@@ -68,6 +69,26 @@ Tokens: 464 de entrada + 63 de saída
 
 A pergunta que usa RAG gasta mais tokens de entrada, porque os trechos recuperados dos documentos entram no prompt.
 
+## Avaliação automática
+
+O script `avaliar.py` roda 6 perguntas de teste e confere duas coisas em cada uma:
+
+1. O supervisor escolheu o **agente esperado**?
+2. A resposta contém a **informação esperada**?
+
+O resultado é salvo em [`docs/avaliacao.md`](docs/avaliacao.md).
+
+**Resultado atual: 6 de 6 perguntas corretas** (3829 tokens de entrada + 454 de saída no total).
+
+### O que a avaliação encontrou
+
+Na primeira execução o resultado foi **5 de 6**. A pergunta *"Vocês vendem geladeira?"* foi enviada pelo supervisor ao agente **geral**, que não consulta os documentos, em vez do agente **loja**. A causa era a instrução do supervisor, que descrevia a loja apenas como "políticas" e não incluía perguntas sobre os produtos vendidos. Depois de ajustar a instrução, a avaliação passou de 5 para 6 acertos.
+
+### Limitações
+
+- São apenas 6 casos de teste, um conjunto pequeno. Serve para detectar regressões, mas não prova qualidade em todos os cenários.
+- A verificação da resposta é por palavras-chave (por exemplo, "24 meses"), e não por significado.
+
 ## Exemplos de execução
 
 ### Agente com ferramentas
@@ -94,7 +115,8 @@ Na segunda pergunta o agente não recebeu o nome da planilha: ele entendeu pelo 
 
 ```
 Pergunta: Vocês vendem geladeira?
-  -> Ferramenta usada: buscar_documentos {...}
+  [supervisor] escolheu o agente: loja
+  -> Ferramenta usada: buscar_documentos {'pergunta': 'Vocês vendem geladeira?'}
 Resposta: Não encontrei informações sobre a venda de geladeiras nos documentos da Techponto.
 ```
 
@@ -133,9 +155,9 @@ pip install -r requirements.txt
 streamlit run src\agentflow\app_web.py
 ```
 
-Ou rode o sistema multiagente direto no terminal:
+Ou rode a avaliação automática (leva alguns minutos, por causa das pausas entre as perguntas):
 ```bash
-python src\agentflow\agente_multiagente.py
+python src\agentflow\avaliar.py
 ```
 
 > O plano gratuito do Gemini tem limite de chamadas por minuto e por dia. Se aparecer o erro 429, aguarde ou troque a variável `MODELO` no código.
@@ -144,10 +166,10 @@ python src\agentflow\agente_multiagente.py
 
 ```
 agentflow/
-├── src/agentflow/       # grafos, agentes e interface web
+├── src/agentflow/       # grafos, agentes, interface web e avaliação
 ├── base_conhecimento/   # documentos usados pelo RAG
 ├── dados/               # planilhas de exemplo
-├── docs/                # imagens da documentação
+├── docs/                # imagens e relatório de avaliação
 ├── tests/
 ├── requirements.txt
 └── .env.example
@@ -161,8 +183,8 @@ agentflow/
 - [x] RAG sobre documentos
 - [x] RAG integrado ao supervisor e à interface web
 - [x] Controle de uso de tokens e janela de contexto
+- [x] Avaliação automática com perguntas de teste
 - [ ] Cache de respostas repetidas
-- [ ] Avaliação automática com perguntas de teste
 - [ ] Observabilidade (rastreamento das chamadas)
 
 ## Autora
