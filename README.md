@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, guarda respostas em cache, é validado por testes automáticos e tem interface web.
+O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, guarda respostas em cache, registra cada chamada, é validado por testes automáticos e tem interface web.
 
 ![Interface do AgentFlow](docs/demo.png)
 
@@ -17,7 +17,8 @@ O projeto evolui por etapas: de um grafo simples até um sistema multiagente que
 | `agente_rag.py` | Agente RAG: busca em documentos e responde citando a fonte |
 | `agente_multiagente.py` | Supervisor que delega a pergunta para 4 agentes especialistas e contabiliza tokens |
 | `cache_respostas.py` | Cache de respostas: pergunta repetida no mesmo contexto custa 0 tokens |
-| `app_web.py` | Interface web de chat (Streamlit) com painel de uso de tokens e de cache |
+| `observabilidade.py` | Registro de cada chamada (agente, tokens, tempo, cache, erro) em arquivo de log |
+| `app_web.py` | Interface web de chat (Streamlit) com painéis de tokens, cache e observabilidade |
 | `avaliar.py` | Avaliação automática: roda perguntas de teste e gera um relatório |
 
 ## Como o agente funciona
@@ -80,7 +81,23 @@ Antes de chamar o modelo, a interface procura a pergunta no cache. Se já existi
 - Se os documentos da pasta `base_conhecimento/` mudarem, apague a pasta `cache/` para não devolver respostas desatualizadas.
 - A avaliação automática chama o sistema direto, sem cache, para testar o modelo de verdade.
 
-A interface mostra "resposta do cache: 0 tokens" na resposta e um contador no painel lateral.
+## Observabilidade
+
+Cada pergunta respondida pela interface gera uma linha no arquivo `logs/chamadas.jsonl`, com:
+
+- data e hora
+- pergunta
+- agente que respondeu
+- tokens de entrada e de saída
+- tempo de resposta, em segundos
+- se a resposta veio do cache
+- se houve erro
+
+A interface lê esse arquivo e mostra, no painel lateral, o número de chamadas, quantas vieram do cache, quantos erros ocorreram, o tempo médio das chamadas ao modelo e o total de tokens. Uma tabela com as últimas chamadas fica disponível na página.
+
+![Registro de chamadas](docs/observabilidade.png)
+
+Isso permite investigar, por exemplo, qual pergunta foi lenta, qual agente foi escolhido e quanto o cache economizou. O arquivo de log não é enviado ao GitHub, porque contém as perguntas feitas ao sistema.
 
 ## Avaliação automática
 
@@ -179,7 +196,7 @@ python src\agentflow\avaliar.py
 
 ```
 agentflow/
-├── src/agentflow/       # grafos, agentes, cache, interface web e avaliação
+├── src/agentflow/       # grafos, agentes, cache, observabilidade, interface web e avaliação
 ├── base_conhecimento/   # documentos usados pelo RAG
 ├── dados/               # planilhas de exemplo
 ├── docs/                # imagens e relatório de avaliação
@@ -188,7 +205,7 @@ agentflow/
 └── .env.example
 ```
 
-## Próximos passos
+## Checklist do projeto
 
 - [x] Memória de conversa
 - [x] Sistema multiagente com supervisor
@@ -198,7 +215,14 @@ agentflow/
 - [x] Controle de uso de tokens e janela de contexto
 - [x] Avaliação automática com perguntas de teste
 - [x] Cache de respostas repetidas
-- [ ] Observabilidade (rastreamento das chamadas)
+- [x] Observabilidade (registro das chamadas)
+
+## Ideias para evoluir
+
+- [ ] Cache semântico (reaproveitar respostas de perguntas parecidas, não só idênticas)
+- [ ] Rastreamento com uma ferramenta dedicada, como Langfuse ou LangSmith
+- [ ] Mais casos de teste e avaliação por significado, e não só por palavras-chave
+- [ ] Publicar a interface online
 
 ## Autora
 
