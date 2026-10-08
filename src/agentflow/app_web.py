@@ -1,6 +1,7 @@
 import streamlit as st
 
 from agente_multiagente import grafo
+from cache_respostas import buscar, salvar
 
 # Janela deslizante: o modelo recebe só as últimas mensagens da conversa
 JANELA = 5
@@ -14,6 +15,7 @@ if "historico" not in st.session_state:
     st.session_state.total_entrada = 0
     st.session_state.total_saida = 0
     st.session_state.ultima = 0
+    st.session_state.respostas_do_cache = 0
 
 # Mostra a conversa até agora (com a legenda de cada resposta)
 for msg in st.session_state.historico:
@@ -36,22 +38,34 @@ if pergunta:
     legenda = ""
 
     with st.chat_message("assistant"):
-        with st.spinner("Pensando..."):
-            try:
-                resultado = grafo.invoke({"messages": mensagens})
-                resposta = resultado["messages"][-1].text
-                agente = resultado.get("proximo", "")
-                entrada = resultado.get("tokens_entrada", 0)
-                saida = resultado.get("tokens_saida", 0)
-                legenda = (
-                    f"Agente que respondeu: {agente} · "
-                    f"tokens: {entrada} entrada + {saida} saída"
-                )
-            except Exception:
-                resposta = (
-                    "Não consegui falar com o modelo agora. "
-                    "Pode ser o limite do plano gratuito: aguarde um minuto e tente de novo."
-                )
+        guardada = buscar(mensagens)
+
+        if guardada:
+            # Cache: mesma pergunta, mesmo contexto -> zero tokens
+            resposta = guardada["resposta"]
+            legenda = (
+                f"Agente que respondeu: {guardada['agente']} · "
+                "resposta do cache: 0 tokens"
+            )
+            st.session_state.respostas_do_cache += 1
+        else:
+            with st.spinner("Pensando..."):
+                try:
+                    resultado = grafo.invoke({"messages": mensagens})
+                    resposta = resultado["messages"][-1].text
+                    agente = resultado.get("proximo", "")
+                    entrada = resultado.get("tokens_entrada", 0)
+                    saida = resultado.get("tokens_saida", 0)
+                    legenda = (
+                        f"Agente que respondeu: {agente} · "
+                        f"tokens: {entrada} entrada + {saida} saída"
+                    )
+                    salvar(mensagens, resposta, agente)
+                except Exception:
+                    resposta = (
+                        "Não consegui falar com o modelo agora. "
+                        "Pode ser o limite do plano gratuito: aguarde um minuto e tente de novo."
+                    )
 
         st.markdown(resposta)
         if legenda:
@@ -77,4 +91,5 @@ with st.sidebar:
         f"Entrada: {st.session_state.total_entrada} · "
         f"Saída: {st.session_state.total_saida}"
     )
+    st.metric("Respostas vindas do cache", st.session_state.respostas_do_cache)
     st.caption(f"Janela de contexto: últimas {JANELA} mensagens")

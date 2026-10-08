@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, é validado por testes automáticos e tem interface web.
+O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, guarda respostas em cache, é validado por testes automáticos e tem interface web.
 
 ![Interface do AgentFlow](docs/demo.png)
 
@@ -16,7 +16,8 @@ O projeto evolui por etapas: de um grafo simples até um sistema multiagente que
 | `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
 | `agente_rag.py` | Agente RAG: busca em documentos e responde citando a fonte |
 | `agente_multiagente.py` | Supervisor que delega a pergunta para 4 agentes especialistas e contabiliza tokens |
-| `app_web.py` | Interface web de chat (Streamlit) com painel de uso de tokens |
+| `cache_respostas.py` | Cache de respostas: pergunta repetida no mesmo contexto custa 0 tokens |
+| `app_web.py` | Interface web de chat (Streamlit) com painel de uso de tokens e de cache |
 | `avaliar.py` | Avaliação automática: roda perguntas de teste e gera um relatório |
 
 ## Como o agente funciona
@@ -68,6 +69,18 @@ Tokens: 464 de entrada + 63 de saída
 ```
 
 A pergunta que usa RAG gasta mais tokens de entrada, porque os trechos recuperados dos documentos entram no prompt.
+
+## Cache de respostas
+
+Antes de chamar o modelo, a interface procura a pergunta no cache. Se já existir uma resposta para **a mesma pergunta no mesmo contexto**, ela é devolvida na hora, **sem gastar nenhum token**.
+
+- A chave do cache considera a pergunta **e as mensagens anteriores** da janela de contexto. Assim, uma pergunta como "E qual é o mais barato?" nunca recebe uma resposta guardada de outra conversa.
+- O texto é normalizado (maiúsculas e espaços não importam), mas a correspondência é **exata**: perguntas escritas de outro jeito não reaproveitam o cache.
+- As respostas ficam em `cache/respostas.json`, que não é enviado ao GitHub.
+- Se os documentos da pasta `base_conhecimento/` mudarem, apague a pasta `cache/` para não devolver respostas desatualizadas.
+- A avaliação automática chama o sistema direto, sem cache, para testar o modelo de verdade.
+
+A interface mostra "resposta do cache: 0 tokens" na resposta e um contador no painel lateral.
 
 ## Avaliação automática
 
@@ -166,7 +179,7 @@ python src\agentflow\avaliar.py
 
 ```
 agentflow/
-├── src/agentflow/       # grafos, agentes, interface web e avaliação
+├── src/agentflow/       # grafos, agentes, cache, interface web e avaliação
 ├── base_conhecimento/   # documentos usados pelo RAG
 ├── dados/               # planilhas de exemplo
 ├── docs/                # imagens e relatório de avaliação
@@ -184,7 +197,7 @@ agentflow/
 - [x] RAG integrado ao supervisor e à interface web
 - [x] Controle de uso de tokens e janela de contexto
 - [x] Avaliação automática com perguntas de teste
-- [ ] Cache de respostas repetidas
+- [x] Cache de respostas repetidas
 - [ ] Observabilidade (rastreamento das chamadas)
 
 ## Autora
