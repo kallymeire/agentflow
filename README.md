@@ -2,7 +2,7 @@
 
 Plataforma de automação com agentes de IA, construída com **LangGraph** e **Gemini**.
 
-O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, guarda respostas em cache, registra cada chamada, é validado por testes automáticos e tem interface web.
+O projeto evolui por etapas: de um grafo simples até um sistema multiagente que usa ferramentas, lê planilhas, consulta documentos com RAG, lembra da conversa, controla o uso de tokens, guarda respostas em cache, registra cada chamada (em um log local e no LangSmith), é validado por testes automáticos e tem interface web.
 
 ![Interface do AgentFlow](docs/demo.png)
 
@@ -99,6 +99,25 @@ A interface lê esse arquivo e mostra, no painel lateral, o número de chamadas,
 
 Isso permite investigar, por exemplo, qual pergunta foi lenta, qual agente foi escolhido e quanto o cache economizou. O arquivo de log não é enviado ao GitHub, porque contém as perguntas feitas ao sistema.
 
+## Rastreamento com LangSmith
+
+Além do log local, cada pergunta gera um **traço** no [LangSmith](https://smith.langchain.com), com a árvore completa da execução: supervisor, agente especialista, chamadas ao modelo e ferramentas, cada uma com o seu tempo.
+
+![Traço no LangSmith](docs/langsmith.png)
+
+O traço mostra, por exemplo, que em uma pergunta sobre a loja (5,54 s no total) o supervisor levou 2,35 s, cerca de 42% do tempo, só para escolher o agente, porque essa escolha é uma chamada extra ao modelo. Os 932 tokens contados pelo LangSmith batem com os mostrados na interface.
+
+Para ativar, crie uma conta em smith.langchain.com, gere uma chave de API e acrescente ao `.env` (os nomes das variáveis estão no `.env.example`):
+
+```
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=sua_chave
+LANGSMITH_PROJECT=agentflow
+```
+
+Não é preciso mudar o código: o LangGraph envia os traços sozinho. Se o rastreamento não for configurado, o projeto funciona normalmente, só sem o painel do LangSmith.
+
 ## Avaliação automática
 
 O script `avaliar.py` roda 6 perguntas de teste e confere duas coisas em cada uma:
@@ -158,6 +177,7 @@ O agente admite que não encontrou a informação, em vez de inventar uma respos
 - LangGraph e LangChain
 - Gemini (Google AI Studio): modelo de chat e embeddings
 - Streamlit
+- LangSmith (rastreamento, opcional)
 
 ## Como rodar
 
@@ -178,7 +198,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-4. Crie uma chave em [aistudio.google.com](https://aistudio.google.com), copie o arquivo `.env.example` para `.env` e cole a chave nele. O arquivo `.env` nunca deve ser enviado ao GitHub.
+4. Crie uma chave em [aistudio.google.com](https://aistudio.google.com), copie o arquivo `.env.example` para `.env` e cole a chave nele. O arquivo `.env` nunca deve ser enviado ao GitHub. As variáveis do LangSmith são opcionais.
 
 5. Rode a interface web:
 ```bash
@@ -200,7 +220,6 @@ agentflow/
 ├── base_conhecimento/   # documentos usados pelo RAG
 ├── dados/               # planilhas de exemplo
 ├── docs/                # imagens e relatório de avaliação
-├── tests/
 ├── requirements.txt
 └── .env.example
 ```
@@ -216,11 +235,11 @@ agentflow/
 - [x] Avaliação automática com perguntas de teste
 - [x] Cache de respostas repetidas
 - [x] Observabilidade (registro das chamadas)
+- [x] Rastreamento com LangSmith
 
 ## Ideias para evoluir
 
 - [ ] Cache semântico (reaproveitar respostas de perguntas parecidas, não só idênticas)
-- [ ] Rastreamento com uma ferramenta dedicada, como Langfuse ou LangSmith
 - [ ] Mais casos de teste e avaliação por significado, e não só por palavras-chave
 - [ ] Publicar a interface online
 
