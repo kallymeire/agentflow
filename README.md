@@ -120,23 +120,27 @@ Não é preciso mudar o código: o LangGraph envia os traços sozinho. Se o rast
 
 ## Avaliação automática
 
-O script `avaliar.py` roda 6 perguntas de teste e confere duas coisas em cada uma:
+O script `avaliar.py` roda 13 perguntas de teste e confere três coisas em cada uma:
 
 1. O supervisor escolheu o **agente esperado**?
-2. A resposta contém a **informação esperada**?
+2. A resposta contém a **informação esperada** (palavras-chave)?
+3. Um **juiz por significado** concorda? O próprio Gemini (temperatura 0) compara a resposta dada com a resposta esperada e explica a decisão em uma frase.
 
-O resultado é salvo em [`docs/avaliacao.md`](docs/avaliacao.md).
+O resultado é salvo em [`docs/avaliacao.md`](docs/avaliacao.md), com uma coluna para cada método, as divergências entre eles e o motivo dado pelo juiz em cada caso.
 
-**Resultado atual: 6 de 6 perguntas corretas** (3829 tokens de entrada + 454 de saída no total).
+**Resultado atual: 13 de 13 perguntas corretas**, sem divergência entre palavras-chave e juiz (7868 tokens de entrada + 984 de saída no total).
+
+Os casos cobrem: perguntas escritas de outro jeito, erros de digitação, perguntas fora do escopo (o agente deve dizer que não encontrou, como em *geladeira* e *micro-ondas*), pergunta geral sem relação com a loja e pergunta com duas informações na mesma frase.
 
 ### O que a avaliação encontrou
 
-Na primeira execução o resultado foi **5 de 6**. A pergunta *"Vocês vendem geladeira?"* foi enviada pelo supervisor ao agente **geral**, que não consulta os documentos, em vez do agente **loja**. A causa era a instrução do supervisor, que descrevia a loja apenas como "políticas" e não incluía perguntas sobre os produtos vendidos. Depois de ajustar a instrução, a avaliação passou de 5 para 6 acertos.
+Na primeira execução, com 6 casos, o resultado foi **5 de 6**. A pergunta *"Vocês vendem geladeira?"* foi enviada pelo supervisor ao agente **geral**, que não consulta os documentos, em vez do agente **loja**. A causa era a instrução do supervisor, que descrevia a loja apenas como "políticas" e não incluía perguntas sobre os produtos vendidos. Depois de ajustar a instrução, a avaliação passou de 5 para 6 acertos.
 
 ### Limitações
 
-- São apenas 6 casos de teste, um conjunto pequeno. Serve para detectar regressões, mas não prova qualidade em todos os cenários.
-- A verificação da resposta é por palavras-chave (por exemplo, "24 meses"), e não por significado.
+- São 13 casos, ainda um conjunto pequeno, e todos são cenários esperados: não há casos adversariais (por exemplo, tentativas de fazer o agente ignorar as instruções).
+- O juiz é o mesmo modelo que gera as respostas, e por isso pode favorecer as próprias respostas. Os motivos do juiz ficam no relatório para conferência manual.
+- A checagem por palavras-chave aceita a resposta se **qualquer um** dos termos aparecer. Na pergunta com duas informações, ela passaria com apenas uma delas, e é o juiz que cobre essa lacuna.
 
 ## Exemplos de execução
 
@@ -236,11 +240,12 @@ agentflow/
 - [x] Cache de respostas repetidas
 - [x] Observabilidade (registro das chamadas)
 - [x] Rastreamento com LangSmith
+- [x] Mais casos de teste e avaliação por significado
 
 ## Ideias para evoluir
 
 - [ ] Cache semântico (reaproveitar respostas de perguntas parecidas, não só idênticas)
-- [ ] Mais casos de teste e avaliação por significado, e não só por palavras-chave
+- [ ] Casos de teste adversariais e um juiz com modelo diferente do que responde
 - [ ] Publicar a interface online
 
 ## Autora
