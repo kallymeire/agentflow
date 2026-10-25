@@ -5,7 +5,7 @@ from pathlib import Path
 ARQUIVO = Path(__file__).resolve().parents[2] / "logs" / "chamadas.jsonl"
 
 
-def registrar(pergunta, agente, entrada, saida, tempo, cache, erro=False):
+def registrar(pergunta, agente, entrada, saida, tempo, cache, erro=False, tipo_cache=""):
     """Guarda uma linha no log para cada pergunta respondida."""
     ARQUIVO.parent.mkdir(exist_ok=True)
     evento = {
@@ -16,6 +16,7 @@ def registrar(pergunta, agente, entrada, saida, tempo, cache, erro=False):
         "tokens_saida": saida,
         "tempo_s": round(tempo, 2),
         "cache": cache,
+        "tipo_cache": tipo_cache,
         "erro": erro,
     }
     with open(ARQUIVO, "a", encoding="utf-8") as f:
@@ -36,7 +37,10 @@ def ler():
 def resumo(eventos):
     """Números gerais: total, cache, erros, tempo médio e tokens."""
     if not eventos:
-        return {"total": 0, "cache": 0, "erros": 0, "tempo_medio": 0.0, "tokens": 0}
+        return {
+            "total": 0, "cache": 0, "cache_semantico": 0,
+            "erros": 0, "tempo_medio": 0.0, "tokens": 0,
+        }
 
     ao_modelo = [e for e in eventos if not e["cache"] and not e["erro"]]
     tempo_medio = (
@@ -47,6 +51,9 @@ def resumo(eventos):
     return {
         "total": len(eventos),
         "cache": sum(1 for e in eventos if e["cache"]),
+        "cache_semantico": sum(
+            1 for e in eventos if e.get("tipo_cache") == "semântico"
+        ),
         "erros": sum(1 for e in eventos if e["erro"]),
         "tempo_medio": tempo_medio,
         "tokens": sum(e["tokens_entrada"] + e["tokens_saida"] for e in eventos),

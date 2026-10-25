@@ -16,10 +16,11 @@ O projeto evolui por etapas: de um grafo simples até um sistema multiagente que
 | `agente_memoria.py` | Agente que lembra da conversa (memória por `thread_id`) |
 | `agente_rag.py` | Agente RAG: busca em documentos e responde citando a fonte |
 | `agente_multiagente.py` | Supervisor que delega a pergunta para 4 agentes especialistas e contabiliza tokens |
-| `cache_respostas.py` | Cache de respostas: pergunta repetida no mesmo contexto custa 0 tokens |
+| `cache_respostas.py` | Cache de respostas em dois níveis: exato e semântico (perguntas parecidas). Resposta do cache custa 0 tokens de chat |
 | `observabilidade.py` | Registro de cada chamada (agente, tokens, tempo, cache, erro) em arquivo de log |
 | `app_web.py` | Interface web de chat (Streamlit) com painéis de tokens, cache e observabilidade |
 | `avaliar.py` | Avaliação automática: roda perguntas de teste e gera um relatório |
+| `calibrar_cache.py` | Mede a similaridade de pares de perguntas para escolher o limite do cache semântico |
 
 ## Como o agente funciona
 
@@ -73,13 +74,35 @@ A pergunta que usa RAG gasta mais tokens de entrada, porque os trechos recuperad
 
 ## Cache de respostas
 
-Antes de chamar o modelo, a interface procura a pergunta no cache. Se já existir uma resposta para **a mesma pergunta no mesmo contexto**, ela é devolvida na hora, **sem gastar nenhum token**.
+Antes de chamar o modelo, a interface procura a pergunta em **dois caches**, nesta ordem:
 
-- A chave do cache considera a pergunta **e as mensagens anteriores** da janela de contexto. Assim, uma pergunta como "E qual é o mais barato?" nunca recebe uma resposta guardada de outra conversa.
-- O texto é normalizado (maiúsculas e espaços não importam), mas a correspondência é **exata**: perguntas escritas de outro jeito não reaproveitam o cache.
-- As respostas ficam em `cache/respostas.json`, que não é enviado ao GitHub.
-- Se os documentos da pasta `base_conhecimento/` mudarem, apague a pasta `cache/` para não devolver respostas desatualizadas.
+1. **Cache exato:** a mesma pergunta (maiúsculas e espaços não importam) no mesmo contexto.
+2. **Cache semântico:** uma pergunta escrita de outro jeito, mas com o mesmo significado. A pergunta vira um embedding (`gemini-embedding-001`) e é comparada, por similaridade de cosseno, com as perguntas já respondidas.
+
+Nos dois casos a resposta volta na hora, **sem gastar tokens de chat** (o cache semântico gasta só uma chamada de embedding, bem mais barata). A legenda da resposta mostra qual cache foi usado e, no semântico, a similaridade.
+
+Exemplo real: *"Quanto tempo de garantia tem o monitor?"* e *"Qual o prazo de garantia do monitor?"* tiveram similaridade de **0,992**, e a segunda resposta veio do cache semântico.
+
+- A chave considera a pergunta **e as mensagens anteriores** da janela de contexto, e o cache semântico só compara perguntas no **mesmo contexto**. Assim, uma pergunta como "E qual é o mais barato?" nunca recebe uma resposta guardada de outra conversa.
+- As respostas ficam em `cache/respostas.json` e `cache/semantico.json`, que não são enviados ao GitHub.
+- A versão dos documentos de `base_conhecimento/` faz parte da chave: se um documento mudar, o cache antigo é ignorado sozinho.
+- Se a chamada de embedding falhar, a pergunta segue normalmente para o modelo.
 - A avaliação automática chama o sistema direto, sem cache, para testar o modelo de verdade.
+
+### Calibração do limite
+
+O script `calibrar_cache.py` mede a similaridade de pares de perguntas que **deveriam** e que **não deveriam** ser tratadas como iguais:
+
+- pares iguais: nota mínima de **0,929**
+- pares diferentes: nota máxima de **0,912**
+
+O par mais perigoso foi *"produto mais caro"* contra *"produto mais barato"* (0,912): o modelo de embeddings acha parecidas perguntas sobre o mesmo assunto, mesmo com respostas opostas. Por isso o limite escolhido foi **0,95**, uma margem de segurança. No teste, as duas perguntas foram ao modelo e responderam corretamente (Monitor, R$ 899,00, e Mouse, R$ 45,50).
+
+### Limitações do cache semântico
+
+- O limite foi escolhido com apenas 8 pares de perguntas, um conjunto pequeno.
+- Com 0,95, uma pergunta igual (a da devolução, 0,929) não reaproveita o cache. Foi uma escolha consciente: é melhor gastar tokens do que devolver uma resposta errada.
+- Como só compara perguntas no mesmo contexto, ele ajuda mais no começo das conversas.
 
 ## Observabilidade
 
@@ -90,7 +113,7 @@ Cada pergunta respondida pela interface gera uma linha no arquivo `logs/chamadas
 - agente que respondeu
 - tokens de entrada e de saída
 - tempo de resposta, em segundos
-- se a resposta veio do cache
+- se a resposta veio do cache e de qual tipo (exato ou semântico)
 - se houve erro
 
 A interface lê esse arquivo e mostra, no painel lateral, o número de chamadas, quantas vieram do cache, quantos erros ocorreram, o tempo médio das chamadas ao modelo e o total de tokens. Uma tabela com as últimas chamadas fica disponível na página.
@@ -181,6 +204,7 @@ O agente admite que não encontrou a informação, em vez de inventar uma respos
 - LangGraph e LangChain
 - Gemini (Google AI Studio): modelo de chat e embeddings
 - Streamlit
+- NumPy (similaridade do cache semântico)
 - LangSmith (rastreamento, opcional)
 
 ## Como rodar
@@ -241,10 +265,10 @@ agentflow/
 - [x] Observabilidade (registro das chamadas)
 - [x] Rastreamento com LangSmith
 - [x] Mais casos de teste e avaliação por significado
+- [x] Cache semântico
 
 ## Ideias para evoluir
 
-- [ ] Cache semântico (reaproveitar respostas de perguntas parecidas, não só idênticas)
 - [ ] Casos de teste adversariais e um juiz com modelo diferente do que responde
 - [ ] Publicar a interface online
 

@@ -42,19 +42,25 @@ if pergunta:
     legenda = ""
     agente = ""
     do_cache = False
+    tipo_cache = ""
     erro = False
 
     with st.chat_message("assistant"):
         guardada = buscar(mensagens)
 
         if guardada:
-            # Cache: mesma pergunta, mesmo contexto -> zero tokens
+            # Cache: mesma pergunta (ou parecida), mesmo contexto -> zero tokens de chat
             resposta = guardada["resposta"]
             agente = guardada["agente"]
             do_cache = True
+            tipo_cache = guardada["tipo"]
+            if tipo_cache == "exato":
+                detalhe = "cache exato"
+            else:
+                detalhe = f"cache semântico (similaridade {guardada['similaridade']})"
             legenda = (
                 f"Agente que respondeu: {agente} · "
-                "resposta do cache: 0 tokens"
+                f"resposta do {detalhe}: 0 tokens de chat"
             )
             st.session_state.respostas_do_cache += 1
         else:
@@ -84,7 +90,7 @@ if pergunta:
     # Observabilidade: registra a chamada no log
     registrar(
         pergunta, agente, entrada, saida,
-        time.perf_counter() - inicio, do_cache, erro,
+        time.perf_counter() - inicio, do_cache, erro, tipo_cache,
     )
 
     st.session_state.total_entrada += entrada
@@ -118,7 +124,8 @@ with st.sidebar:
     st.header("🔎 Observabilidade")
     st.caption(
         f"Chamadas registradas: {numeros['total']} · "
-        f"cache: {numeros['cache']} · erros: {numeros['erros']}"
+        f"cache: {numeros['cache']} (semântico: {numeros['cache_semantico']}) · "
+        f"erros: {numeros['erros']}"
     )
     st.caption(f"Tempo médio das chamadas ao modelo: {numeros['tempo_medio']} s")
     st.caption(f"Tokens somados no log: {numeros['tokens']}")
