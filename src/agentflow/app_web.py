@@ -1,3 +1,4 @@
+import os
 import time
 
 import streamlit as st
@@ -9,6 +10,20 @@ from observabilidade import ler, registrar, resumo
 # Janela deslizante: o modelo recebe só as últimas mensagens da conversa
 JANELA = 5
 
+# Modo público (demonstração online): ative com AGENTFLOW_PUBLICO=1 nos secrets.
+# Nele, o uso do modelo é limitado e o registro de perguntas de outros
+# visitantes fica escondido.
+MODO_PUBLICO = os.getenv("AGENTFLOW_PUBLICO") == "1"
+LIMITE_SESSAO = int(os.getenv("AGENTFLOW_LIMITE_SESSAO", "10"))
+LIMITE_GLOBAL = int(os.getenv("AGENTFLOW_LIMITE_GLOBAL", "300"))
+
+
+@st.cache_resource
+def _contador_global():
+    """Conta as chamadas ao modelo de todos os visitantes (enquanto o app roda)."""
+    return {"chamadas": 0}
+
+
 st.set_page_config(page_title="AgentFlow", page_icon="🤖")
 st.title("🤖 AgentFlow")
 st.caption("Supervisor + agentes especialistas com LangGraph e Gemini")
@@ -19,6 +34,7 @@ if "historico" not in st.session_state:
     st.session_state.total_saida = 0
     st.session_state.ultima = 0
     st.session_state.respostas_do_cache = 0
+    st.session_state.chamadas_modelo = 0
 
 # Mostra a conversa até agora (com a legenda de cada resposta)
 for msg in st.session_state.historico:
@@ -47,6 +63,7 @@ if pergunta:
 
     with st.chat_message("assistant"):
         guardada = buscar(mensagens)
+        contador = _contador_global()
 
         if guardada:
             # Cache: mesma pergunta (ou parecida), mesmo contexto -> zero tokens de chat
@@ -63,7 +80,20 @@ if pergunta:
                 f"resposta do {detalhe}: 0 tokens de chat"
             )
             st.session_state.respostas_do_cache += 1
+        elif MODO_PUBLICO and st.session_state.chamadas_modelo >= LIMITE_SESSAO:
+            resposta = (
+                f"Esta demonstração permite {LIMITE_SESSAO} perguntas ao modelo por "
+                "sessão, por causa da cota gratuita. Perguntas já respondidas "
+                "continuam saindo do cache."
+            )
+        elif MODO_PUBLICO and contador["chamadas"] >= LIMITE_GLOBAL:
+            resposta = (
+                "A demonstração atingiu o limite de uso por enquanto. "
+                "Tente de novo mais tarde."
+            )
         else:
+            st.session_state.chamadas_modelo += 1
+            contador["chamadas"] += 1
             with st.spinner("Pensando..."):
                 try:
                     resultado = grafo.invoke({"messages": mensagens})
@@ -119,6 +149,9 @@ with st.sidebar:
     )
     st.metric("Respostas vindas do cache", st.session_state.respostas_do_cache)
     st.caption(f"Janela de contexto: últimas {JANELA} mensagens")
+    if MODO_PUBLICO:
+        restantes = max(LIMITE_SESSAO - st.session_state.chamadas_modelo, 0)
+        st.caption(f"Demonstração: {restantes} perguntas ao modelo restantes nesta sessão")
 
     st.divider()
     st.header("🔎 Observabilidade")
@@ -130,9 +163,10 @@ with st.sidebar:
     st.caption(f"Tempo médio das chamadas ao modelo: {numeros['tempo_medio']} s")
     st.caption(f"Tokens somados no log: {numeros['tokens']}")
 
-# Tabela com as últimas chamadas
-with st.expander("🔎 Registro das últimas chamadas"):
-    if eventos:
-        st.dataframe(list(reversed(eventos[-10:])))
-    else:
-        st.caption("Nenhuma chamada registrada ainda.")
+# Tabela com as últimas chamadas (escondida no modo público: tem perguntas de outros visitantes)
+if not MODO_PUBLICO:
+    with st.expander("🔎 Registro das últimas chamadas"):
+        if eventos:
+            st.dataframe(list(reversed(eventos[-10:])))
+        else:
+            st.caption("Nenhuma chamada registrada ainda.")
