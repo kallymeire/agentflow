@@ -6,6 +6,8 @@ O projeto evolui por etapas: de um grafo simples até um sistema multiagente que
 
 ![Interface do AgentFlow](docs/demo.png)
 
+**Demonstração online:** https://agentflow-kallymeire.streamlit.app
+
 ## O que já funciona
 
 | Arquivo | O que faz |
@@ -206,6 +208,29 @@ O agente admite que não encontrou a informação, em vez de inventar uma respos
 - Streamlit
 - NumPy (similaridade do cache semântico)
 - LangSmith (rastreamento, opcional)
+- Streamlit Community Cloud (hospedagem da demonstração)
+
+## Demonstração online
+
+A interface está publicada no Streamlit Community Cloud: **https://agentflow-kallymeire.streamlit.app**
+
+Como é um app aberto na internet e usa uma cota gratuita do Gemini, a demonstração roda em **modo público**:
+
+- **Limite de uso:** 10 perguntas ao modelo por sessão e 300 no total. Perguntas já respondidas continuam saindo do cache, sem contar no limite.
+- **Privacidade:** a tabela com o registro das últimas chamadas fica escondida, porque mostraria as perguntas de outros visitantes.
+- **App dormindo:** depois de um tempo sem visitas, o Streamlit pode "adormecer" o app. Nesse caso, basta clicar no botão para acordá-lo, o que leva cerca de um minuto.
+
+### Como foi publicada
+
+- Hospedagem no Streamlit Community Cloud, ligada a este repositório (arquivo principal: `src/agentflow/app_web.py`, Python 3.11).
+- A chave do Gemini fica nos *secrets* do Streamlit, nunca no GitHub, e é uma chave **separada** da usada no computador.
+- O modo público é ligado pela variável `AGENTFLOW_PUBLICO=1`. Os limites podem ser ajustados com `AGENTFLOW_LIMITE_SESSAO` e `AGENTFLOW_LIMITE_GLOBAL`.
+- O rastreamento do LangSmith não é ativado na demonstração.
+
+### Limitações da demonstração
+
+- O limite por sessão pode ser contornado recarregando a página. Quem protege a cota é o limite global, que vale para todos os visitantes enquanto o app estiver rodando.
+- Os arquivos de cache e de log ficam no disco do Streamlit, que é apagado quando o app reinicia.
 
 ## Como rodar
 
@@ -266,11 +291,11 @@ agentflow/
 - [x] Rastreamento com LangSmith
 - [x] Mais casos de teste e avaliação por significado
 - [x] Cache semântico
+- [x] Interface publicada online
 
 ## Ideias para evoluir
 
 - [ ] Casos de teste adversariais e um juiz com modelo diferente do que responde
-- [ ] Publicar a interface online
 
 ## Autora
 
