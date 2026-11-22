@@ -1,4 +1,6 @@
+import json
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -127,6 +129,8 @@ CASOS = [
 PAUSA = 30  # segundos entre perguntas (limite do plano gratuito)
 PAUSA_JUIZ = 5  # respiro antes da chamada do juiz
 RELATORIO = Path(__file__).resolve().parents[2] / "docs" / "avaliacao.md"
+# Mesmos resultados em JSON, para o painel do NEXUS.IA ler
+RELATORIO_JSON = RELATORIO.with_name("avaliacao.json")
 
 
 def _limpar(texto):
@@ -144,6 +148,7 @@ def avaliar():
     acertos_juiz = 0
     avaliados_juiz = 0
     total_entrada = total_saida = 0
+    casos_json = []
 
     for i, caso in enumerate(CASOS, start=1):
         if i > 1:
@@ -158,6 +163,20 @@ def avaliar():
             print(f"  ERRO ao chamar o modelo ({type(e).__name__})")
             linhas.append(
                 f"| {i} | {caso['pergunta']} | {caso['agente']} | - | - | - | ERRO | - |"
+            )
+            casos_json.append(
+                {
+                    "n": i,
+                    "pergunta": caso["pergunta"],
+                    "agente_esperado": caso["agente"],
+                    "agente": None,
+                    "palavras_ok": None,
+                    "juiz_ok": None,
+                    "passou": None,
+                    "erro": True,
+                    "tokens": 0,
+                    "motivo": f"erro ao chamar o modelo ({type(e).__name__})",
+                }
             )
             continue
 
@@ -208,6 +227,20 @@ def avaliar():
             f"{'✅ passou' if passou else '❌ falhou'} | {entrada + saida} |"
         )
         motivos.append(f"- **Caso {i}**: {_limpar(motivo)}")
+        casos_json.append(
+            {
+                "n": i,
+                "pergunta": caso["pergunta"],
+                "agente_esperado": caso["agente"],
+                "agente": agente,
+                "palavras_ok": bool(palavras_ok),
+                "juiz_ok": juiz_ok,
+                "passou": bool(passou),
+                "erro": False,
+                "tokens": entrada + saida,
+                "motivo": _limpar(motivo),
+            }
+        )
 
     print("\n" + "=" * 50)
     print(f"ACERTOS: {passaram} de {len(CASOS)}  (erros de chamada: {erros})")
@@ -237,6 +270,25 @@ def avaliar():
     RELATORIO.parent.mkdir(exist_ok=True)
     RELATORIO.write_text(texto, encoding="utf-8")
     print(f"Relatório salvo em: {RELATORIO}")
+
+    # JSON para o painel (docs/avaliacao.json)
+    dados = {
+        "projeto": "AgentFlow",
+        "modelo": str(MODELO),
+        "gerado_em": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "total": len(CASOS),
+        "passaram": int(passaram),
+        "erros": erros,
+        "acertos_palavras": acertos_palavras,
+        "juiz": {"acertos": int(acertos_juiz), "avaliados": avaliados_juiz},
+        "divergencias": len(divergencias),
+        "tokens": {"entrada": total_entrada, "saida": total_saida},
+        "casos": casos_json,
+    }
+    RELATORIO_JSON.write_text(
+        json.dumps(dados, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"JSON salvo em: {RELATORIO_JSON}")
 
 
 if __name__ == "__main__":
