@@ -1,0 +1,176 @@
+{
+  "projeto": "AgentFlow",
+  "modelo": "gemini-3.1-flash-lite",
+  "gerado_em": "2026-11-22T18:31:59+00:00",
+  "total": 13,
+  "passaram": 13,
+  "erros": 0,
+  "acertos_palavras": 13,
+  "juiz": {
+    "acertos": 13,
+    "avaliados": 13
+  },
+  "divergencias": 0,
+  "tokens": {
+    "entrada": 7870,
+    "saida": 959
+  },
+  "casos": [
+    {
+      "n": 1,
+      "pergunta": "Qual o prazo para devolver um produto?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 830,
+      "motivo": "A resposta dada é mais completa e precisa que a esperada, mantendo a veracidade sobre o prazo de 7 dias para arrependimento e adicionando informações relevantes sobre defeitos."
+    },
+    {
+      "n": 2,
+      "pergunta": "Quanto tempo de garantia tem o monitor?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 797,
+      "motivo": "A resposta dada transmite a mesma informação essencial da resposta esperada, confirmando o prazo de 24 meses de garantia."
+    },
+    {
+      "n": 3,
+      "pergunta": "A partir de quanto o frete é grátis?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 825,
+      "motivo": "A resposta dada transmite a mesma informação essencial da esperada, adicionando apenas uma especificação geográfica que não contradiz a política original."
+    },
+    {
+      "n": 4,
+      "pergunta": "Qual o total da coluna quantidade em vendas.csv?",
+      "agente_esperado": "planilha",
+      "agente": "planilha",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 559,
+      "motivo": "A resposta dada transmite exatamente a mesma informação que a esperada, utilizando uma estrutura gramatical equivalente."
+    },
+    {
+      "n": 5,
+      "pergunta": "Quanto é 12,5 + 30?",
+      "agente_esperado": "calculo",
+      "agente": "calculo",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 431,
+      "motivo": "A resposta dada apresenta o resultado correto e mantém o mesmo significado matemático da resposta esperada."
+    },
+    {
+      "n": 6,
+      "pergunta": "Vocês vendem geladeira?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 825,
+      "motivo": "A resposta comunica corretamente a ausência da informação solicitada e adiciona um contexto relevante baseado nos documentos disponíveis sem inventar dados."
+    },
+    {
+      "n": 7,
+      "pergunta": "Em quantos dias posso devolver uma compra?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 825,
+      "motivo": "A resposta dada contém a informação essencial do prazo de 7 dias e adiciona detalhes pertinentes sobre as condições de devolução sem contradizer a resposta esperada."
+    },
+    {
+      "n": 8,
+      "pergunta": "Qanto tmpo de garantia tem o monitor?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 789,
+      "motivo": "A resposta dada transmite a mesma informação essencial da resposta esperada, confirmando o prazo de 24 meses de garantia."
+    },
+    {
+      "n": 9,
+      "pergunta": "Qual é o produto mais caro de vendas.csv?",
+      "agente_esperado": "planilha",
+      "agente": "planilha",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 609,
+      "motivo": "A resposta fornecida transmite exatamente a mesma informação da esperada, utilizando apenas uma formatação em negrito que não altera o conteúdo factual."
+    },
+    {
+      "n": 10,
+      "pergunta": "Quanto é 100 + 250,5?",
+      "agente_esperado": "calculo",
+      "agente": "calculo",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 447,
+      "motivo": "A resposta dada apresenta o valor numérico correto e comunica o mesmo resultado da resposta esperada de forma clara."
+    },
+    {
+      "n": 11,
+      "pergunta": "Vocês vendem micro-ondas?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 828,
+      "motivo": "A resposta dada transmite a mesma informação de ausência de dados sobre o produto, adicionando apenas um contexto útil sobre o conteúdo dos documentos consultados."
+    },
+    {
+      "n": 12,
+      "pergunta": "Quem descobriu o Brasil?",
+      "agente_esperado": "geral",
+      "agente": "geral",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 192,
+      "motivo": "A resposta fornecida contém todas as informações essenciais da resposta esperada, incluindo o nome do navegador e a data correta."
+    },
+    {
+      "n": 13,
+      "pergunta": "Qual a garantia do monitor e o prazo de devolução?",
+      "agente_esperado": "loja",
+      "agente": "loja",
+      "palavras_ok": true,
+      "juiz_ok": true,
+      "passou": true,
+      "erro": false,
+      "tokens": 872,
+      "motivo": "A resposta fornecida contém todas as informações solicitadas na resposta esperada, mantendo o significado correto e adicionando apenas detalhes contextuais pertinentes."
+    }
+  ]
+}
